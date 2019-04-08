@@ -3,12 +3,16 @@
 #include "CBasicViewport.h"
 #include "CProgressDialog.h"
 #include "CProjectSettingsDialog.h"
+#include "NDolphinIntegration.h"
+
 #include "Editor/CharacterEditor/CCharacterEditor.h"
+#include "Editor/CollisionEditor/CCollisionEditor.h"
 #include "Editor/ModelEditor/CModelEditorWindow.h"
 #include "Editor/ScanEditor/CScanEditor.h"
 #include "Editor/StringEditor/CStringEditor.h"
 #include "Editor/ResourceBrowser/CResourceBrowser.h"
 #include "Editor/WorldEditor/CWorldEditor.h"
+
 #include <Common/Macros.h>
 #include <Common/CTimer.h>
 #include <Core/GameProject/CGameProject.h>
@@ -31,6 +35,7 @@ CEditorApplication::CEditorApplication(int& rArgc, char **ppArgv)
 
 CEditorApplication::~CEditorApplication()
 {
+    NDolphinIntegration::KillQuickplay();
     delete mpWorldEditor;
     delete mpProjectDialog;
 }
@@ -66,14 +71,17 @@ bool CEditorApplication::CloseAllEditors()
 
 bool CEditorApplication::CloseProject()
 {
-    if (mpActiveProject && CloseAllEditors())
-    {
-        // Emit before actually deleting the project to allow editor references to clean up
-        CGameProject *pOldProj = mpActiveProject;
-        mpActiveProject = nullptr;
-        emit ActiveProjectChanged(nullptr);
-        delete pOldProj;
-    }
+    if (mpActiveProject && !CloseAllEditors())
+        return false;
+
+    // Close any active quickplay sessions
+    NDolphinIntegration::KillQuickplay();
+
+    // Emit before actually deleting the project to allow editor references to clean up
+    CGameProject *pOldProj = mpActiveProject;
+    mpActiveProject = nullptr;
+    emit ActiveProjectChanged(nullptr);
+    delete pOldProj;
 
     return true;
 }
@@ -176,6 +184,12 @@ void CEditorApplication::EditResource(CResourceEntry *pEntry)
             break;
         }
 
+        case EResourceType::DynamicCollision:
+        {
+            pEd = new CCollisionEditor((CCollisionMeshGroup*) pRes, mpWorldEditor);
+            break;
+        }
+
         }
 
         if (pEd)
@@ -240,6 +254,22 @@ bool CEditorApplication::CookPackageList(QList<CPackage*> PackageList)
         return !Dialog.ShouldCancel();
     }
     else return true;
+}
+
+bool CEditorApplication::HasAnyDirtyPackages()
+{
+    if (!mpActiveProject)
+        return false;
+
+    for (uint32 PkgIdx = 0; PkgIdx < mpActiveProject->NumPackages(); PkgIdx++)
+    {
+        CPackage *pPackage = mpActiveProject->PackageByIndex(PkgIdx);
+
+        if (pPackage->NeedsRecook())
+            return true;
+    }
+
+    return false;
 }
 
 bool CEditorApplication::RebuildResourceDatabase()

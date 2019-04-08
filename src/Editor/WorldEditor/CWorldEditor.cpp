@@ -12,6 +12,7 @@
 #include "Editor/CExportGameDialog.h"
 #include "Editor/CNodeCopyMimeData.h"
 #include "Editor/CProjectSettingsDialog.h"
+#include "Editor/CQuickplayPropertyEditor.h"
 #include "Editor/CSelectionIterator.h"
 #include "Editor/UICommon.h"
 #include "Editor/PropertyEdit/CPropertyView.h"
@@ -31,6 +32,7 @@
 #include <QFontMetrics>
 #include <QMessageBox>
 #include <QSettings>
+#include <QToolButton>
 
 CWorldEditor::CWorldEditor(QWidget *parent)
     : INodeEditor(parent)
@@ -118,6 +120,20 @@ CWorldEditor::CWorldEditor(QWidget *parent)
 
     mpCollisionDialog = new CCollisionRenderSettingsDialog(this, this);
 
+    // Quickplay buttons
+    QToolButton* pQuickplayButton = new QToolButton(this);
+    pQuickplayButton->setIcon( QIcon(":/icons/Play_32px.png") );
+    pQuickplayButton->setPopupMode( QToolButton::MenuButtonPopup );
+    pQuickplayButton->setMenu( new CQuickplayPropertyEditor(mQuickplayParms, this) );
+    pQuickplayButton->setToolTip( "Quickplay" );
+
+    ui->MainToolBar->addSeparator();
+    mpQuickplayAction = ui->MainToolBar->addWidget(pQuickplayButton);
+    mpQuickplayAction->setVisible(false);
+    mpQuickplayAction->setEnabled(false);
+
+    connect(pQuickplayButton, SIGNAL(pressed()), this, SLOT(LaunchQuickplay()));
+
     // "Open Recent" menu
     mpOpenRecentMenu = new QMenu(this);
     ui->ActionOpenRecent->setMenu(mpOpenRecentMenu);
@@ -203,12 +219,6 @@ CWorldEditor::~CWorldEditor()
     delete ui;
 }
 
-/*void CWorldEditor::closeEvent(QCloseEvent *pEvent)
-{
-    mpCollisionDialog->close();
-    mpLinkDialog->close();
-}*/
-
 bool CWorldEditor::CloseWorld()
 {
     if (CheckUnsavedChanges())
@@ -221,6 +231,7 @@ bool CWorldEditor::CloseWorld()
         UndoStack().clear();
         mpCollisionDialog->close();
         mpLinkDialog->close();
+        mpQuickplayAction->setEnabled(false);
 
         mpArea = nullptr;
         mpWorld = nullptr;
@@ -229,6 +240,7 @@ bool CWorldEditor::CloseWorld()
 
         ui->ActionSave->setEnabled(false);
         ui->ActionSaveAndRepack->setEnabled(false);
+        ui->ActionEditLayers->setEnabled(false);
         emit MapChanged(mpWorld, mpArea);
         return true;
     }
@@ -287,6 +299,8 @@ bool CWorldEditor::SetArea(CWorld *pWorld, int AreaIndex)
     // Update toolbar actions
     ui->ActionSave->setEnabled(true);
     ui->ActionSaveAndRepack->setEnabled(true);
+    ui->ActionEditLayers->setEnabled(true);
+    mpQuickplayAction->setEnabled(true);
 
     // Emit signals
     emit MapChanged(mpWorld, mpArea);
@@ -309,6 +323,11 @@ bool CWorldEditor::HasAnyScriptNodesSelected() const
     }
 
     return false;
+}
+
+bool CWorldEditor::IsQuickplayEnabled() const
+{
+    return mpQuickplayAction->isVisible() && mpQuickplayAction->isEnabled();
 }
 
 CSceneViewport* CWorldEditor::Viewport() const
@@ -507,6 +526,7 @@ void CWorldEditor::OnActiveProjectChanged(CGameProject *pProj)
     ui->ActionProjectSettings->setEnabled( pProj != nullptr );
     ui->ActionCloseProject->setEnabled( pProj != nullptr );
     mpPoiMapAction->setVisible( pProj != nullptr && pProj->Game() >= EGame::EchoesDemo && pProj->Game() <= EGame::Corruption );
+    mpQuickplayAction->setVisible( pProj != nullptr && NDolphinIntegration::IsQuickplaySupported(pProj) );
     ResetCamera();
     UpdateWindowTitle();
 
@@ -925,6 +945,34 @@ void CWorldEditor::UpdateNewLinkLine()
                 ui->MainViewport->SetLinkLineEnabled(false);
         }
     }
+}
+
+void CWorldEditor::LaunchQuickplay()
+{
+    CVector3f CameraPosition = Viewport()->Camera().Position();
+    LaunchQuickplayFromLocation(CameraPosition, false);
+}
+
+void CWorldEditor::LaunchQuickplayFromLocation(CVector3f Location, bool ForceAsSpawnPosition)
+{
+    // This function should not be called if a level is not open in a project.
+    ASSERT( gpEdApp->ActiveProject() != nullptr );
+    ASSERT( mpWorld && mpArea );
+
+    // Fill in parameters and start running
+    SQuickplayParameters Parameters = mQuickplayParms;
+    Parameters.BootWorldAssetID = mpWorld->ID().ToLong();
+    Parameters.BootAreaAssetID = mpArea->ID().ToLong();
+    Parameters.SpawnTransform = Viewport()->Camera().GetCameraTransform();
+    Parameters.SpawnTransform.SetTranslation(Location);
+
+    if (ForceAsSpawnPosition)
+    {
+        Parameters.Features.SetFlag(EQuickplayFeature::JumpToArea);
+        Parameters.Features.SetFlag(EQuickplayFeature::SetSpawnPosition);
+    }
+
+    NDolphinIntegration::LaunchQuickplay(this, gpEdApp->ActiveProject(), Parameters);
 }
 
 // ************ PROTECTED ************

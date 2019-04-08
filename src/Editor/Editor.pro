@@ -204,7 +204,11 @@ HEADERS += \
     StringEditor/CStringMimeData.h \
     ScanEditor/CScanEditor.h \
     Undo/ICreateDeleteResourceCommand.h \
-    Undo/CSaveStoreCommand.h
+    Undo/CSaveStoreCommand.h \
+    CollisionEditor/CCollisionEditor.h \
+    CollisionEditor/CCollisionEditorViewport.h \
+    NDolphinIntegration.h \
+    CQuickplayPropertyEditor.h
 
 # Source Files
 SOURCES += \
@@ -280,7 +284,11 @@ SOURCES += \
     IEditor.cpp \
     StringEditor/CStringDelegate.cpp \
     CTweakEditor.cpp \
-    ScanEditor/CScanEditor.cpp
+    ScanEditor/CScanEditor.cpp \
+    CollisionEditor/CCollisionEditor.cpp \
+    CollisionEditor/CCollisionEditorViewport.cpp \
+    NDolphinIntegration.cpp \
+    CQuickplayPropertyEditor.cpp
 
 # UI Files
 FORMS += \
@@ -308,7 +316,9 @@ FORMS += \
     CGeneratePropertyNamesDialog.ui \
     StringEditor/CStringEditor.ui \
     CTweakEditor.ui \
-    ScanEditor/CScanEditor.ui
+    ScanEditor/CScanEditor.ui \
+    CollisionEditor/CCollisionEditor.ui \
+    CQuickplayPropertyEditor.ui
 
 # Codegen
 CODEGEN_DIR = $$EXTERNALS_DIR/CodeGen

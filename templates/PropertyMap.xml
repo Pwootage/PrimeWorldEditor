@@ -1214,10 +1214,6 @@
             <Value Name="CloseDelay"/>
         </Element>
         <Element>
-            <Key ID="0x6DEE4C5" Type="choice"/>
-            <Value Name="Unknown"/>
-        </Element>
-        <Element>
             <Key ID="0x6DEE4C5" Type="int"/>
             <Value Name="Unknown"/>
         </Element>
@@ -7931,7 +7927,7 @@
         </Element>
         <Element>
             <Key ID="0x2BD13AB3" Type="string"/>
-            <Value Name="Unknown"/>
+            <Value Name="PakFile"/>
         </Element>
         <Element>
             <Key ID="0x2BD1C15B" Type="float"/>
@@ -13562,8 +13558,8 @@
             <Value Name="UnknownStruct25"/>
         </Element>
         <Element>
-            <Key ID="0x4A1E493B" Type="UnknownStruct25"/>
-            <Value Name="UnknownStruct25"/>
+            <Key ID="0x4A1E493B" Type="EmperorIngStage1Data"/>
+            <Value Name="Data"/>
         </Element>
         <Element>
             <Key ID="0x4A1E8961" Type="float"/>
@@ -14910,8 +14906,8 @@
             <Value Name="BallCameraChaseAnglePerSecond"/>
         </Element>
         <Element>
-            <Key ID="0x5105FA2D" Type="UnknownStruct18"/>
-            <Value Name="UnknownStruct18"/>
+            <Key ID="0x5105FA2D" Type="EmperorIngStage2TentacleData"/>
+            <Value Name="Data"/>
         </Element>
         <Element>
             <Key ID="0x5106FEB9" Type="bool"/>
@@ -15999,7 +15995,7 @@
         </Element>
         <Element>
             <Key ID="0x56E3CEEF" Type="float"/>
-            <Value Name="Fade Length"/>
+            <Value Name="Fadetime"/>
         </Element>
         <Element>
             <Key ID="0x56EB17BB" Type="GenericCreatureStructE"/>
@@ -26838,7 +26834,7 @@
             <Value Name="Jump"/>
         </Element>
         <Element>
-            <Key ID="0x93357240" Type="int"/>
+            <Key ID="0x93357240" Type="sound"/>
             <Value Name="VulnerabilityChangeSound"/>
         </Element>
         <Element>
@@ -29043,7 +29039,7 @@
         </Element>
         <Element>
             <Key ID="0x9FB2FAA6" Type="float"/>
-            <Value Name="Unknown"/>
+            <Value Name="FieldofView2Player"/>
         </Element>
         <Element>
             <Key ID="0x9FB991FE" Type="float"/>
@@ -32858,8 +32854,8 @@
             <Value Name="UnknownStruct19"/>
         </Element>
         <Element>
-            <Key ID="0xB3C6398F" Type="UnknownStruct19"/>
-            <Value Name="UnknownStruct19"/>
+            <Key ID="0xB3C6398F" Type="EmperorIngStage1TentacleData"/>
+            <Value Name="Tentacle"/>
         </Element>
         <Element>
             <Key ID="0xB3DABF84" Type="DamageInfo"/>
@@ -36635,7 +36631,7 @@
         </Element>
         <Element>
             <Key ID="0xC80FC827" Type="float"/>
-            <Value Name="Time"/>
+            <Value Name="PickupEffectLifetime"/>
         </Element>
         <Element>
             <Key ID="0xC81690CB" Type="string"/>
