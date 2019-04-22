@@ -69,6 +69,7 @@ INCLUDEPATH += $$PWE_MAIN_INCLUDE \
                $$EXTERNALS_DIR/LibCommon/Source \
                $$EXTERNALS_DIR/nod/include \
                $$EXTERNALS_DIR/nod/logvisor/include \
+               $$EXTERNALS_DIR/stb \
                $$EXTERNALS_DIR/tinyxml2 \
                $$EXTERNALS_DIR/zlib
 
@@ -118,11 +119,10 @@ HEADERS += \
     Resource/CMaterialPass.h \
     Resource/CMaterialSet.h \
     Resource/CResource.h \
-    Resource/CTexture.h \
+    Resource/Texture/CTexture.h \
     Resource/CWorld.h \
-    Resource/EResType.h \
     Resource/ETevEnums.h \
-    Resource/ETexelFormat.h \
+    Resource/Texture/ETexelFormat.h \
     Resource/TResPtr.h \
     Scene/CCollisionNode.h \
     Scene/CLightNode.h \
@@ -260,7 +260,9 @@ HEADERS += \
     Resource/Collision/SCollisionIndexData.h \
     Resource/Collision/CCollisionRenderData.h \
     Resource/Collision/SOBBTreeNode.h \
-    Resource/Collision/CCollidableOBBTree.h
+    Resource/Collision/CCollidableOBBTree.h \
+    Resource/Texture/NTextureUtils.h \
+    Resource/EResourceType.h
 
 # Source Files
 SOURCES += \
@@ -296,7 +298,7 @@ SOURCES += \
     Resource/CLight.cpp \
     Resource/CMaterial.cpp \
     Resource/CMaterialPass.cpp \
-    Resource/CTexture.cpp \
+    Resource/Texture/CTexture.cpp \
     Resource/CWorld.cpp \
     Scene/CCollisionNode.cpp \
     Scene/CLightNode.cpp \
@@ -381,7 +383,8 @@ SOURCES += \
     Resource/Cooker/CScanCooker.cpp \
     NCoreTests.cpp \
     Resource/Collision/CCollisionRenderData.cpp \
-    Resource/Collision/CCollidableOBBTree.cpp
+    Resource/Collision/CCollidableOBBTree.cpp \
+    Resource/Texture/NTextureUtils.cpp
 
 # Codegen
 CODEGEN_DIR = $$EXTERNALS_DIR/CodeGen

@@ -22,3 +22,6 @@
 [submodule "externals/lzokay"]
 	path = externals/lzokay
 	url = https://github.com/jackoalan/lzokay
+[submodule "externals/stb"]
+	path = externals/stb
+	url = https://github.com/nothings/stb
