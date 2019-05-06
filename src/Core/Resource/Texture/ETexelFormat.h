@@ -43,8 +43,7 @@ enum class ETexelFormat
     RGB565,
     // Four-channel 32-bit uncompressed RGBA texture
     RGBA8,
-    // Compressed BC1/DXT1 RGBA texture with one-bit alpha
-    BC1,
+
     Invalid = -1
 };
 

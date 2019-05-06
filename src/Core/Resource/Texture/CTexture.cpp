@@ -41,16 +41,15 @@ void CTexture::CreateRenderResources()
     glBindTexture(BindTarget, mTextureResource);
 
     GLenum GLFormat, GLType;
-    bool bCompressed = false;
 
     switch (mEditorFormat)
     {
         case ETexelFormat::Luminance:
-            GLFormat = GL_LUMINANCE;
+            GLFormat = GL_R8;
             GLType = GL_UNSIGNED_BYTE;
             break;
         case ETexelFormat::LuminanceAlpha:
-            GLFormat = GL_LUMINANCE_ALPHA;
+            GLFormat = GL_RG8;
             GLType = GL_UNSIGNED_BYTE;
             break;
         case ETexelFormat::RGB565:
@@ -61,10 +60,6 @@ void CTexture::CreateRenderResources()
             GLFormat = GL_RGBA;
             GLType = GL_UNSIGNED_BYTE;
             break;
-        case ETexelFormat::BC1:
-            GLFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-            bCompressed = true;
-            break;
     }
 
     // The smallest mipmaps are probably not being loaded correctly, because mipmaps in GX textures have a minimum size depending on the format, and these don't.
@@ -74,23 +69,15 @@ void CTexture::CreateRenderResources()
         const SMipData& MipData = mMipData[MipIdx];
         uint SizeX = MipData.SizeX;
         uint SizeY = MipData.SizeY;
-        uint DataSize = MipData.DataBuffer.size();
         const void* pkData = MipData.DataBuffer.data();
 
-        if (bCompressed)
+        if (mEnableMultisampling)
         {
-            glCompressedTexImage2D(BindTarget, MipIdx, GLFormat, SizeX, SizeY, 0, DataSize, pkData);
+            glTexImage2DMultisample(BindTarget, 4, GLFormat, SizeX, SizeY, true);
         }
         else
         {
-            if (mEnableMultisampling)
-            {
-                glTexImage2DMultisample(BindTarget, 4, GLFormat, SizeX, SizeY, true);
-            }
-            else
-            {
-                glTexImage2D(BindTarget, MipIdx, GLFormat, SizeX, SizeY, 0, GLFormat, GLType, pkData);
-            }
+            glTexImage2D(BindTarget, MipIdx, GLFormat, SizeX, SizeY, 0, GLFormat, GLType, pkData);
         }
     }
 
@@ -106,10 +93,17 @@ void CTexture::CreateRenderResources()
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &MaxAnisotropy);
     glTexParameterf(BindTarget, GL_TEXTURE_MAX_ANISOTROPY_EXT, MaxAnisotropy);
 
-    // Swizzle for LuminanceAlpha
-    if (mEditorFormat == ETexelFormat::LuminanceAlpha)
+    // Swizzle for luminance formats
+    if (mEditorFormat == ETexelFormat::Luminance)
     {
-        glTexParameterf(BindTarget, GL_TEXTURE_SWIZZLE_A, GL_GREEN);
+        glTexParameteri(BindTarget, GL_TEXTURE_SWIZZLE_RGBA, GL_RED);
+    }
+    else if (mEditorFormat == ETexelFormat::LuminanceAlpha)
+    {
+        glTexParameteri(BindTarget, GL_TEXTURE_SWIZZLE_R, GL_RED);
+        glTexParameteri(BindTarget, GL_TEXTURE_SWIZZLE_G, GL_RED);
+        glTexParameteri(BindTarget, GL_TEXTURE_SWIZZLE_B, GL_RED);
+        glTexParameteri(BindTarget, GL_TEXTURE_SWIZZLE_A, GL_GREEN);
     }
 }
 
@@ -184,6 +178,37 @@ uint CTexture::AllocateMipTail(uint DesiredMipCount /*= 0*/)
     return mMipData.size();
 }
 
+/** Compress the texture data into the format specified by Format. */
+void CTexture::Compress(EGXTexelFormat Format)
+{
+    // @todo load source PNG data
+
+}
+
+/** Generate editor texel data based on the currently loaded game texel data */
+void CTexture::GenerateEditorData(bool bClearGameData /*= true*/)
+{
+    for (uint MipIdx = 0; MipIdx < mMipData.size(); MipIdx++)
+    {
+        SMipData& MipData = mMipData[MipIdx];
+
+        NTextureUtils::ConvertGameDataToEditorData(
+            mGameFormat,
+            MipData.SizeX,
+            MipData.SizeY,
+            MipData.GameDataBuffer.data(),
+            MipData.GameDataBuffer.size(),
+            MipData.DataBuffer,
+            MipIdx == 0 ? &mEditorFormat : nullptr
+        );
+
+        if (bClearGameData)
+        {
+            MipData.GameDataBuffer.clear();
+        }
+    }
+}
+
 /**
  * Update the internal resolution of the texture; used for dynamically-scaling textures
  */
@@ -217,50 +242,34 @@ void CTexture::Resize(uint32 SizeX, uint32 SizeY)
 
 float CTexture::ReadTexelAlpha(const CVector2f& kTexCoord)
 {
-    // todo: support texel formats other than DXT1
-    // also: this is an inaccurate implementation because it
+    // @todo: this is an inaccurate implementation because it
     // doesn't take into account mipmaps or texture filtering
     const SMipData& kMipData = mMipData[0];
     uint32 TexelX = (uint32) ((kMipData.SizeX - 1) * kTexCoord.X);
     uint32 TexelY = (uint32) ((kMipData.SizeY - 1) * (1.f - fmodf(kTexCoord.Y, 1.f)));
+
 
     if (mEditorFormat == ETexelFormat::Luminance || mEditorFormat == ETexelFormat::RGB565)
     {
         // No alpha in these formats
         return 1.f;
     }
-    else if (mEditorFormat == ETexelFormat::BC1)
+    else if (mEditorFormat == ETexelFormat::LuminanceAlpha)
     {
-        // 8 bytes per 4x4 16-pixel block, left-to-right top-to-bottom
-        uint32 BlockIdxX = TexelX / 4;
-        uint32 BlockIdxY = TexelY / 4;
-        uint32 BlocksPerRow = kMipData.SizeX / 4;
-        uint32 BufferPos = (8 * BlockIdxX) + (8 * BlockIdxY * BlocksPerRow);
-
-        uint16 PaletteA, PaletteB;
-        uint32 PaletteIndices;
-        memcpy(&PaletteA, &kMipData.DataBuffer[BufferPos+0], 2);
-        memcpy(&PaletteB, &kMipData.DataBuffer[BufferPos+2], 2);
-        memcpy(&PaletteIndices, &kMipData.DataBuffer[BufferPos+4], 4);
-
-        if (PaletteA > PaletteB)
-        {
-            // No palette colors have alpha
-            return 1.f;
-        }
-
-        // BC1 is a 1-bit alpha format; texels either have alpha, or they don't
-        // Alpha is only present on palette index 3
-        // We don't need to calculate/decode the actual palette colors.
-        uint32 BlockCol = (TexelX & 0xF) / 4;
-        uint32 BlockRow = (TexelY & 0xF) / 4;
-        uint32 Shift = (BlockRow << 3) | (BlockCol << 1);
-        uint32 PaletteIndex = (PaletteIndices >> Shift) & 0x3;
-        return (PaletteIndex == 3 ? 0.f : 1.f);
+        uint Offset = (TexelY * kMipData.SizeX * 2) + TexelX*2 + 1;
+        uint8 Alpha = *((uint8*) &kMipData.DataBuffer[Offset]);
+        return Alpha / 255.f;
+    }
+    else if (mEditorFormat == ETexelFormat::RGBA8)
+    {
+        uint Offset = (TexelY * kMipData.SizeX * 4) + TexelX*4 + 3;
+        uint8 Alpha = *((uint8*) &kMipData.DataBuffer[Offset]);
+        return Alpha / 255.f;
     }
     else
     {
-        // Other formats unsupported
+        errorf("Unhandled texel format in ReadTexelAlpha(): %s",
+               TEnumReflection<ETexelFormat>::ConvertValueToString(mEditorFormat));
         return 1.f;
     }
 }

@@ -12,8 +12,14 @@
 /** Mipmap data */
 struct SMipData
 {
-    std::vector<uint8> DataBuffer;
+    /** Mip dimensions */
     uint SizeX, SizeY;
+
+    /** Mip texel data */
+    std::vector<uint8> DataBuffer;
+
+    /** Mip texel data with game texel formats; may be empty when not in use */
+    std::vector<uint8> GameDataBuffer;
 };
 
 /** Class representing a 2D texture asset */
@@ -31,8 +37,6 @@ class CTexture : public CResource
 
     /** Mipmap data */
     std::vector<SMipData> mMipData;
-
-    /** Whether the texture needs to be recompressed */
 
     /** @todo the following is OpenGL stuff that really shouldn't be implemented here */
     /** Whether multisample should be enabled (if this texture is a render target). */
@@ -52,6 +56,12 @@ public:
 
     /** Allocate mipmap data, but does not fill any data. Returns the new mipmap count. */
     uint AllocateMipTail(uint DesiredMipCount = 0);
+
+    /** Compress the texture data into the format specified by Format. */
+    void Compress(EGXTexelFormat Format);
+
+    /** Generate editor texel data based on the currently loaded game texel data */
+    void GenerateEditorData(bool bClearGameData = true);
 
     /**
      * Update the internal resolution of the texture; used for dynamically-scaling textures
